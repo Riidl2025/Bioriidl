@@ -11,7 +11,6 @@ import Contact from "../pages/Contact.jsx";
 import DIYBiolab from "../pages/DIYBiolab.jsx";
 import IBSC from "../pages/ibsc";
 import Research from "../pages/Research/index.jsx";
-// import GrantsAgent from "../pages/GrantsAgent/index.jsx";
 import GrantsAgent from './../pages/Grantsagent/index';
 
 
@@ -32,7 +31,7 @@ const AppRouter = () => {
         <Route path="/ibsc" element={<IBSC />} />
         <Route path="/research" element={<Research/>} />
         <Route path="/grantsagent" element={< GrantsAgent/>} />
-        {/* <Route path="/grantsagent" element={<GrantsAgent />} /> */}
+        
         
       </Route>
     </Routes>
