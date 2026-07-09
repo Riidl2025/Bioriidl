@@ -49,7 +49,7 @@ export default function ChatPanel() {
 
     try {
       const response = await fetch(
-        API_URL,
+        `${API_URL}/api/chat`,
         {
           method: "POST",
           headers: {
