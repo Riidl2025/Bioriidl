@@ -13,8 +13,6 @@ import IBSC from "../pages/ibsc";
 import Research from "../pages/Research/index.jsx";
 import GrantsAgent from './../pages/Grantsagent/index';
 import StartupDeals from "../pages/StartupDeals/index.jsx";
-import UserDashboard from "../components/StartupDeals/Dashboard/Dashboard.jsx";
-import ForgotPassword from "../components/StartupDeals/Dashboard/ForgotPassword.jsx";
 
 const AppRouter = () => {
   return (
@@ -34,9 +32,6 @@ const AppRouter = () => {
         <Route path="/research" element={<Research/>} />
         <Route path="/grantsagent" element={< GrantsAgent/>} />
         <Route path="/startupdeals" element={<StartupDeals />} />
-        <Route path="/dashboard" element={<UserDashboard />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        
         
         
       </Route>

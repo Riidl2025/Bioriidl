@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroBg from "../assets/hero-bg.png";
 
 export default function HeroCard({ onExplore }) {
@@ -25,7 +26,7 @@ export default function HeroCard({ onExplore }) {
             partners.
           </p>
 
-          <div className="mt-10 flex md:mt-12 lg:mt-14">
+          <div className="mt-10 flex flex-wrap gap-4 md:mt-12 lg:mt-14">
             <button
               type="button"
               onClick={onExplore}
@@ -34,6 +35,13 @@ export default function HeroCard({ onExplore }) {
               Explore Deals
               <ArrowRight className="h-5 w-5" strokeWidth={2} />
             </button>
+
+            <Link
+              to="/startupdeals/auth"
+              className="inline-flex items-center rounded-xl border border-white/80 px-8 py-5 text-xl font-semibold text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            >
+              Login / Signup
+            </Link>
           </div>
         </div>
       </div>

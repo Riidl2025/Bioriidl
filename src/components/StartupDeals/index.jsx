@@ -3,6 +3,9 @@ import HeroCard from "./HeroCard/HeroCard";
 import Deals from "./Deals/Deals";
 import UserDashboard from "./Dashboard/Dashboard.jsx";
 
+export { default as UserProfile } from "./AuthenticationPg/UserProfile";
+export { default as ForgotPassword } from "./AuthenticationPg/ForgotPassword";
+
 export default function StartupDeals() {
   const [showDeals, setShowDeals] = useState(false);
 
