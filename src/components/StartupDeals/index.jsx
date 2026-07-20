@@ -1,6 +1,7 @@
 import { useState } from "react";
 import HeroCard from "./HeroCard/HeroCard";
 import Deals from "./Deals/Deals";
+import UserDashboard from "./Dashboard/Dashboard.jsx";
 
 export default function StartupDeals() {
   const [showDeals, setShowDeals] = useState(false);
