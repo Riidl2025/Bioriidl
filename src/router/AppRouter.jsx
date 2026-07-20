@@ -12,7 +12,11 @@ import DIYBiolab from "../pages/DIYBiolab.jsx";
 import IBSC from "../pages/ibsc";
 import Research from "../pages/Research/index.jsx";
 import GrantsAgent from './../pages/Grantsagent/index';
-import StartupDeals from "../pages/StartupDeals/index.jsx";
+import StartupDeals, {
+  ForgotPassword,
+  UserProfile,
+} from "../components/StartupDeals";
+import AuthPage from "../components/StartupDeals/AuthenticationPg/AuthPg.jsx";
 
 const AppRouter = () => {
   return (
@@ -32,6 +36,9 @@ const AppRouter = () => {
         <Route path="/research" element={<Research/>} />
         <Route path="/grantsagent" element={< GrantsAgent/>} />
         <Route path="/startupdeals" element={<StartupDeals />} />
+        <Route path="/startupdeals/auth" element={<AuthPage />} />
+        <Route path="/dashboard" element={<UserProfile />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         
         
       </Route>

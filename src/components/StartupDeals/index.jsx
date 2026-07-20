@@ -2,6 +2,9 @@ import { useState } from "react";
 import HeroCard from "./HeroCard/HeroCard";
 import Deals from "./Deals/Deals";
 
+export { default as UserProfile } from "./AuthenticationPg/UserProfile";
+export { default as ForgotPassword } from "./AuthenticationPg/ForgotPassword";
+
 export default function StartupDeals() {
   const [showDeals, setShowDeals] = useState(false);
 
