@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 const Navbar = ({ setView, user, handleLogout, getInitials }) => {
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setShowSettingsMenu(false);
+      if (menuRef.current && !menuRef.current.contains(e.target)) setShowDropdown(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -22,24 +22,43 @@ const Navbar = ({ setView, user, handleLogout, getInitials }) => {
           <span className="font-medium text-[#A20202] ml-2">Member Hub</span>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-[#A20202] text-white font-bold flex items-center justify-center">
-            {getInitials(user.name)}
-          </div>
-          <div className="relative" ref={menuRef}>
-            <button onClick={() => setShowSettingsMenu(!showSettingsMenu)} className="p-2 text-gray-600 hover:text-[#A20202]">
-              ⚙️
-            </button>
-            {showSettingsMenu && (
-              <div className="absolute right-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg py-2 w-40 z-50">
-                <button onClick={() => {setView('profile'); setShowSettingsMenu(false)}} className="block w-full text-left px-4 py-2 hover:bg-gray-100">Edit Profile</button>
-                <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-[#A20202] font-bold">Logout</button>
-              </div>
-            )}
-          </div>
+        {/* User Initials with Dropdown */}
+        <div className="relative" ref={menuRef}>
+          <button 
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="w-10 h-10 rounded-full bg-[#A20202] text-white font-bold flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A20202] transition-transform active:scale-95"
+            aria-label="User menu"
+          >
+            {getInitials(user?.name)}
+          </button>
+
+          {showDropdown && (
+            <div className="absolute right-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg py-2 w-44 z-50">
+              <button 
+                onClick={() => { setView('dashboard'); setShowDropdown(false); }} 
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Dashboard
+              </button>
+              <button 
+                onClick={() => { setView('profile'); setShowDropdown(false); }} 
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                View Profile
+              </button>
+              <div className="border-t border-gray-100 my-1"></div>
+              <button 
+                onClick={() => { setShowDropdown(false); handleLogout(); }} 
+                className="block w-full text-left px-4 py-2 text-sm text-[#A20202] font-bold hover:bg-red-50"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
   );
 };
+
 export default Navbar;

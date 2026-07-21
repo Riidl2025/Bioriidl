@@ -1,64 +1,38 @@
-import { Navigate, useNavigate } from "react-router-dom";
-import { logout } from "./api/authApi";
 import { useAuth } from "../../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-export default function UserProfile() {
+const UserProfile = () => {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { user, setUser, isLoading } = useAuth();
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      setUser(null);
-      navigate("/startupdeals/auth", { replace: true });
-    }
+  const handleLogout = () => {
+    logout();
+    navigate("/");
   };
 
-  if (isLoading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
-        Loading profile...
-      </main>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/startupdeals/auth" replace />;
-  }
-
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-12">
-      <section className="mx-auto max-w-2xl rounded-3xl bg-white p-8 shadow-xl shadow-slate-200/60 md:p-12">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#A20202]">
-          User Profile
-        </p>
-        <h1 className="mt-3 text-4xl font-bold text-slate-900">
-          Welcome, {user.name}
-        </h1>
-        <p className="mt-3 text-slate-600">
-          You are signed in to your Bioriidl account.
-        </p>
-
-        <dl className="mt-8 divide-y divide-slate-200 rounded-2xl border border-slate-200">
-          <div className="p-5">
-            <dt className="text-sm font-medium text-slate-500">Full name</dt>
-            <dd className="mt-1 font-semibold text-slate-900">{user.name}</dd>
+    <div className="min-h-screen flex items-center justify-center bg-[#f6f7f9] p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+        <h1 className="text-2xl font-bold text-center mb-6">My Profile</h1>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-500">Name</label>
+            <p className="text-lg font-medium">{user?.name || "—"}</p>
           </div>
-          <div className="p-5">
-            <dt className="text-sm font-medium text-slate-500">Email address</dt>
-            <dd className="mt-1 font-semibold text-slate-900">{user.email}</dd>
+          <div>
+            <label className="text-sm text-gray-500">Email</label>
+            <p className="text-lg font-medium">{user?.email || "—"}</p>
           </div>
-        </dl>
-
+        </div>
         <button
-          type="button"
           onClick={handleLogout}
-          className="mt-8 rounded-xl bg-[#A20202] px-6 py-3 font-semibold text-white transition hover:bg-[#880101]"
+          className="mt-8 w-full py-3 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors"
         >
-          Log out
+          Logout
         </button>
-      </section>
-    </main>
+      </div>
+    </div>
   );
-}
+};
+
+export default UserProfile;
