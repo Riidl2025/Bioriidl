@@ -11,4 +11,14 @@ export default defineConfig({
   ssr: {
     noExternal: ['lucide-react'],
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        ws: false,
+      },
+    },
+  },
 })

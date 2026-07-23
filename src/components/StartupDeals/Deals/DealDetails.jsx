@@ -1,4 +1,70 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
+import startupsData from '../Data/startupsData';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
+
 export default function DealDetails({ deal }) {
+  const [isClaiming, setIsClaiming] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleClaimClick = async () => {
+    // Check if user is logged in / signed in
+    if (!user) {
+      navigate('/startupdeals/auth', { replace: true });
+      return;
+    }
+
+    // Find the corresponding startup from startupsData using startupId
+    const startup = startupsData.find((s) => s.id === deal?.startupId);
+
+    // Determine redirect URL: prefer explicit deal.redirectUrl, then startup.redirectUrl, then extract from claimSteps
+    const extractUrlFromSteps = () => {
+      const allText = (deal?.claimSteps || []).join(' ');
+      const m = allText.match(/https?:\/\/[^\s)]+/);
+      return m ? m[0] : null;
+    };
+
+    const redirectUrl = deal?.redirectUrl || startup?.redirectUrl || extractUrlFromSteps();
+
+    setIsClaiming(true);
+    try {
+      // Record claim in backend
+      const resp = await fetch(`${API_BASE_URL}/deals/claim`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startupName: startup?.name || deal?.startupName,
+          dealName: deal?.title,
+          redirectUrl,
+        }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        console.error('Failed to log claim', err);
+        alert(err.message || 'Failed to record claim. Please try again.');
+        setIsClaiming(false);
+        return;
+      }
+
+      // Redirect user to the deal URL if available
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else {
+        alert('No redirect URL found for this deal.');
+        setIsClaiming(false);
+      }
+    } catch (error) {
+      console.error('Error recording claim:', error);
+      alert('An error occurred while logging the claim. Please try again.');
+      setIsClaiming(false);
+    }
+  };
+
   return (
     <div className="mx-auto -mt-1 w-full max-w-4xl sm:-mt-2">
       <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm sm:px-4 sm:py-3.5">
@@ -51,12 +117,11 @@ export default function DealDetails({ deal }) {
         <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
           <button
             type="button"
-            onClick={() =>
-              alert("Claim functionality will be integrated later.")
-            }
-            className="inline-flex items-center justify-center rounded-[10px] bg-[#A20202] px-6 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-[#8B0202] hover:shadow-[0_6px_16px_rgba(162,2,2,0.22)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A20202]/40 focus-visible:ring-offset-2"
+            disabled={isClaiming}
+            onClick={handleClaimClick}
+            className="inline-flex items-center justify-center rounded-[10px] bg-[#A20202] px-6 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-[#8B0202] hover:shadow-[0_6px_16px_rgba(162,2,2,0.22)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A20202]/40 focus-visible:ring-offset-2 disabled:opacity-50"
           >
-            Claim Now
+            {isClaiming ? 'Processing...' : deal.buttonText || 'Claim Now'}
           </button>
         </div>
       </div>

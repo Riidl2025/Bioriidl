@@ -18,7 +18,7 @@ const UserDashboard = () => {
       // Clear local session even if the API call fails.
     }
     setUser(null);
-    navigate('/');
+    navigate('/startupdeals', { replace: true });
   };
 
   const getInitials = (name) => {

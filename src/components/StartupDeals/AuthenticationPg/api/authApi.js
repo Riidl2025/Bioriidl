@@ -1,5 +1,5 @@
 const AUTH_API_URL =
-  import.meta.env.VITE_AUTH_API_URL ?? "http://localhost:8000/api/auth";
+  import.meta.env.VITE_AUTH_API_URL ?? "/api/auth";
 
 async function request(path, options = {}) {
   const { headers, ...requestOptions } = options;
