@@ -1,4 +1,5 @@
 import claudeImage from "../assets/claude.png";
+import claudeGuidePdf from "../assets/claude-guide.pdf";
 
 /**
  * Deal catalog — deal information only.
@@ -16,6 +17,10 @@ export const dealsData = [
       "Access Anthropic's Claude through GenZDealZ and top up tokens to continue chatting. Choose from Starter (₹50), Standard (₹75), or Pro (₹100) plans with Haiku, Sonnet, and Opus token allocations. Free tier included (50K Haiku · 10K Sonnet · 1K Opus per user); purchased plans stack on top. Pay securely via Cashfree with UPI, cards, net banking, or wallets.",
     image: claudeImage,
     redirectUrl: 'https://genzdealz.ai/claude',
+
+    // PDF Guide
+    pdf: claudeGuidePdf,
+
     claimSteps: [
       "Step 1 — Open Claude Chat: Visit https://genzdealz.ai/claude in your browser.",
       "Step 2 — Click the Buy Button: In the top-right corner, click the Buy button. A plan selection modal will appear showing your current token balance.",
@@ -25,6 +30,7 @@ export const dealsData = [
       "Step 5 — Payment Confirmation: Once payment is complete, a 'Paid Successfully' message will be displayed on your screen.",
       "Step 6 — Tokens Credited Automatically: After successful payment, tokens are credited to your account instantly. Your updated balance will appear in the top-right corner of the chat.",
     ],
+
     buttonText: "Claim Deal",
   },
 ];

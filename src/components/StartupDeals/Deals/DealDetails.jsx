@@ -68,12 +68,12 @@ export default function DealDetails({ deal }) {
   return (
     <div className="mx-auto -mt-1 w-full max-w-4xl sm:-mt-2">
       <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm sm:px-4 sm:py-3.5">
-        <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:gap-3 sm:text-left">
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-[#fff7f7] sm:h-14 sm:w-14">
+        <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-8 sm:text-left">
+          <div className="flex h-28 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_2px_8px_rgba(20,32,46,0.06)] sm:h-32 sm:w-32 sm:p-5">
             <img
               src={deal.image}
               alt={`${deal.startupName} logo`}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           </div>
 
@@ -93,33 +93,76 @@ export default function DealDetails({ deal }) {
         </div>
 
         <div className="mt-2">
-          <h3 className="mb-1.5 text-base font-bold text-[#14202e]">
+          <h3 className="mb-3 text-base font-bold text-[#14202e]">
             How to Claim
           </h3>
 
-          <ol className="space-y-0.5">
+          <ol className="space-y-0">
             {deal.claimSteps.map((step, index) => (
               <li
                 key={`${deal.id}-step-${index}`}
-                className="flex items-center gap-2 rounded-lg border border-slate-100 bg-[#f6f7f9] px-2 py-1 sm:px-2.5 sm:py-1"
+                className="grid grid-cols-[2rem_1fr] gap-x-4 pb-6 last:pb-0"
               >
-                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#A20202] text-[11px] font-bold text-white">
-                  {index + 1}
-                </span>
-                <p className="text-left text-[13px] leading-snug text-[#14202e] sm:text-[14px]">
-                  {step}
-                </p>
+                <div className="flex h-full flex-col items-center">
+                  <span className="relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#A20202] text-xs font-bold text-white shadow-sm">
+                    {index + 1}
+                  </span>
+                  {index < deal.claimSteps.length - 1 && (
+                    <span
+                      aria-hidden="true"
+                      className="mt-0 w-px flex-1 bg-slate-200"
+                    />
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex min-h-[4.25rem] items-center rounded-xl border border-slate-200/80 bg-slate-50/90 px-4 py-3.5 shadow-sm transition-shadow duration-200 hover:shadow-md">
+                    <p className="w-full text-left text-[13px] leading-relaxed text-[#14202e] sm:text-[14px]">
+                      {step.replace(/^Step \d+ —\s*/, "")}
+                    </p>
+                  </div>
+                </div>
               </li>
             ))}
           </ol>
         </div>
 
-        <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-3">
+          <a
+            href={deal.pdf}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] border border-slate-200 bg-white px-6 py-2.5 text-sm font-semibold text-[#14202e] transition duration-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60 focus-visible:ring-offset-2 sm:w-auto"
+          >
+            <svg
+              aria-hidden="true"
+              className="h-4 w-4 text-[#5b6b7c]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            View Guide
+          </a>
+
           <button
             type="button"
+<<<<<<< HEAD
             disabled={isClaiming}
             onClick={handleClaimClick}
             className="inline-flex items-center justify-center rounded-[10px] bg-[#A20202] px-6 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-[#8B0202] hover:shadow-[0_6px_16px_rgba(162,2,2,0.22)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A20202]/40 focus-visible:ring-offset-2 disabled:opacity-50"
+=======
+            onClick={() =>
+              alert("Claim functionality will be integrated later.")
+            }
+            className="inline-flex w-full items-center justify-center rounded-[10px] bg-[#A20202] px-6 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-[#8B0202] hover:shadow-[0_6px_16px_rgba(162,2,2,0.22)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A20202]/40 focus-visible:ring-offset-2 sm:w-auto"
+>>>>>>> 4cf326b (StartUpDeals ui changed)
           >
             {isClaiming ? 'Processing...' : deal.buttonText || 'Claim Now'}
           </button>

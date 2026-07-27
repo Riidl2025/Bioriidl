@@ -12,19 +12,19 @@ export default function StartupDealsList({ startupId, onViewDeal }) {
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <div className="rounded-3xl bg-white px-6 py-8 text-center shadow-xl shadow-slate-200/50 sm:px-10 sm:py-9">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#A20202]">
-          Deals by Startup
+      <div className="px-1 pb-2 pt-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#A20202]">
+          Available Offers
         </p>
-        <h2 className="mt-2.5 font-['Fraunces',Georgia,serif] text-4xl font-extrabold tracking-tight text-[#14202e] [text-shadow:0_1px_2px_rgba(20,32,46,0.08)] sm:text-5xl">
-          {startup.name}
+        <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#14202e] sm:text-4xl">
+          Offers from {startup.name}
         </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-base text-[#5b6b7c]/80">
-          {startup.description}
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#5b6b7c]/80 sm:text-base">
+          Exclusive benefits, discounts and tools just for you.
         </p>
       </div>
 
-      <div className="mx-auto mt-10 grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mx-auto mt-10 flex w-full max-w-5xl flex-col gap-5">
         {startupDeals.map((deal) => (
           <DealCard
             key={deal.id}
