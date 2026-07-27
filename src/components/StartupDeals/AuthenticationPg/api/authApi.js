@@ -1,5 +1,4 @@
-const AUTH_API_URL =
-  import.meta.env.VITE_AUTH_API_URL ?? "/api/auth";
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL ?? "/api/auth";
 
 async function request(path, options = {}) {
   const { headers, ...requestOptions } = options;
@@ -34,6 +33,13 @@ export const login = (credentials) =>
   request("/login", {
     method: "POST",
     body: JSON.stringify(credentials),
+  });
+  
+//Frontend: sending the note to your backend
+export const googleLogin = (credential) =>
+  request("/google", {
+    method: "POST",
+    body: JSON.stringify({ credential }),
   });
 
 export const getProfile = () => request("/dashboard");

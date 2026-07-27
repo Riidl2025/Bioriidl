@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
-import { login, signup } from "./api/authApi";
+import { Eye, EyeOff, User, Lock, Mail } from "lucide-react";
+import { login, signup, googleLogin } from "./api/authApi";
 import { useAuth } from "../../../context/AuthContext";
+import { GoogleLogin } from "@react-oauth/google";
+
+const ACCENT = "#A20202";
 
 const AuthPage = () => {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setUser, user, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
@@ -17,9 +20,17 @@ const AuthPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
+  const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] =
+    useState(false);
   const [passwordVisibility, setPasswordVisibility] = useState("auto");
-  const [confirmPasswordVisibility, setConfirmPasswordVisibility] = useState("auto");
+  const [confirmPasswordVisibility, setConfirmPasswordVisibility] =
+    useState("auto");
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isLoading, user, navigate]);
 
   const passwordRequirements = [
     {
@@ -39,7 +50,9 @@ const AuthPage = () => {
       met: /\d/.test(formData.password),
     },
   ];
-  const isPasswordValid = passwordRequirements.every((requirement) => requirement.met);
+  const isPasswordValid = passwordRequirements.every(
+    (requirement) => requirement.met,
+  );
   const isPasswordVisible =
     passwordVisibility === "visible" ||
     (passwordVisibility === "auto" && isPasswordFocused);
@@ -88,7 +101,7 @@ const AuthPage = () => {
             name: formData.name,
             email: formData.email,
             password: formData.password,
-      });
+          });
 
       setUser(data);
       navigate("/dashboard", { replace: true });
@@ -99,66 +112,48 @@ const AuthPage = () => {
         return;
       }
 
-      setError(requestError.message || "Something went wrong. Please try again.");
+      setError(
+        requestError.message || "Something went wrong. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    try {
+      setLoading(true);
+      const data = await googleLogin(credentialResponse.credential);
+      setUser(data);
+      navigate("/dashboard", { replace: true });
+    } catch (requestError) {
+      setError(
+        requestError.message || "Google sign-in failed. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#A20202] via-[#8a0202] to-black flex items-center justify-center px-5 py-10">
-
+    <main className="min-h-screen bg-white flex items-center justify-center px-5 py-10">
       <section
-        className="max-w-xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden"
+        className="max-w-4xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 relative"
         aria-label="Authentication Section"
       >
-        <article className="p-8 md:p-12">
-
-          <header className="mb-8 text-center">
-
-            <h2 className="text-4xl font-bold text-[#A20202]">
+        {/* Left: Form */}
+        <article className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-1">
+          <header className="mb-8">
+            <h2 className="text-4xl font-bold" style={{ color: ACCENT }}>
               {isLogin ? "Login" : "Create Account"}
             </h2>
-
             <p className="text-gray-500 mt-2">
               {isLogin
                 ? "Login to continue."
                 : "Join us and create your account."}
             </p>
-
           </header>
-
-
-          {/* Toggle Buttons */}
-
-          <nav
-            className="flex bg-gray-100 rounded-xl p-1 mb-8"
-            aria-label="Authentication Toggle"
-          >
-            <button
-              type="button"
-              onClick={() => handleToggle(true)}
-              className={`w-1/2 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                isLogin
-                  ? "bg-[#A20202] text-white"
-                  : "text-gray-600"
-              }`}
-            >
-              Login
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleToggle(false)}
-              className={`w-1/2 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                !isLogin
-                  ? "bg-[#A20202] text-white"
-                  : "text-gray-600"
-              }`}
-            >
-              Signup
-            </button>
-          </nav>
 
           {error && (
             <div
@@ -169,62 +164,70 @@ const AuthPage = () => {
             </div>
           )}
 
-          {/* Form */}
-
-          <form className="space-y-5" onSubmit={handleSubmit}>
-
+          <form className="space-y-7" onSubmit={handleSubmit}>
             {!isLogin && (
               <div>
                 <label
                   htmlFor="name"
-                  className="block font-medium mb-2"
+                  className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
                 >
-                  Full Name
+                  FULL NAME
                 </label>
-
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full border rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-[#A20202]"
-                />
+                <div
+                  className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
+                  style={{ color: ACCENT }}
+                >
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    placeholder="Enter your full name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
+                  />
+                  <User size={18} className="absolute right-0 text-gray-400" />
+                </div>
               </div>
             )}
 
             <div>
               <label
                 htmlFor="email"
-                className="block font-medium mb-2"
+                className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
               >
-                Email Address
+                EMAIL ADDRESS
               </label>
-
-              <input
-                type="email"
-                id="email"
-                name="email"
-                placeholder="john@example.com"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full border rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-[#A20202]"
-              />
+              <div
+                className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
+                style={{ color: ACCENT }}
+              >
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="john@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
+                />
+                <Mail size={18} className="absolute right-0 text-gray-400" />
+              </div>
             </div>
-
 
             <div>
               <label
                 htmlFor="password"
-                className="block font-medium mb-2"
+                className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
               >
-                Password
+                PASSWORD
               </label>
-
-              <div className="relative">
+              <div
+                className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
+                style={{ color: ACCENT }}
+              >
                 <input
                   type={isPasswordVisible ? "text" : "password"}
                   id="password"
@@ -236,17 +239,19 @@ const AuthPage = () => {
                   onBlur={() => setIsPasswordFocused(false)}
                   required
                   minLength={isLogin ? undefined : 8}
-                  className="w-full border rounded-xl p-4 pr-14 focus:outline-none focus:ring-2 focus:ring-[#A20202]"
+                  className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
                 />
                 <button
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={togglePasswordVisibility}
-                  className="absolute inset-y-0 right-0 flex w-14 items-center justify-center text-gray-500 hover:text-[#A20202] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A20202]"
-                  aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                  className="absolute right-0 flex items-center justify-center text-gray-400 hover:text-current focus:outline-none"
+                  aria-label={
+                    isPasswordVisible ? "Hide password" : "Show password"
+                  }
                   title={isPasswordVisible ? "Hide password" : "Show password"}
                 >
-                  {isPasswordVisible ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {isPasswordVisible ? <Eye size={18} /> : <EyeOff size={18} />}
                 </button>
               </div>
 
@@ -255,7 +260,10 @@ const AuthPage = () => {
                   {passwordRequirements.map((requirement) => (
                     <li
                       key={requirement.label}
-                      className={requirement.met ? "text-green-700" : "text-gray-500"}
+                      className={
+                        requirement.met ? "font-medium" : "text-gray-400"
+                      }
+                      style={requirement.met ? { color: ACCENT } : undefined}
                     >
                       <span aria-hidden="true" className="mr-2 font-bold">
                         {requirement.met ? "✓" : "•"}
@@ -267,17 +275,18 @@ const AuthPage = () => {
               )}
             </div>
 
-
             {!isLogin && (
               <div>
                 <label
                   htmlFor="confirmPassword"
-                  className="block font-medium mb-2"
+                  className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
                 >
-                  Confirm Password
+                  CONFIRM PASSWORD
                 </label>
-
-                <div className="relative">
+                <div
+                  className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
+                  style={{ color: ACCENT }}
+                >
                   <input
                     type={isConfirmPasswordVisible ? "text" : "password"}
                     id="confirmPassword"
@@ -289,13 +298,13 @@ const AuthPage = () => {
                     onBlur={() => setIsConfirmPasswordFocused(false)}
                     required
                     minLength={8}
-                    className="w-full border rounded-xl p-4 pr-14 focus:outline-none focus:ring-2 focus:ring-[#A20202]"
+                    className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
                   />
                   <button
                     type="button"
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={toggleConfirmPasswordVisibility}
-                    className="absolute inset-y-0 right-0 flex w-14 items-center justify-center text-gray-500 hover:text-[#A20202] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A20202]"
+                    className="absolute right-0 flex items-center justify-center text-gray-400 hover:text-current focus:outline-none"
                     aria-label={
                       isConfirmPasswordVisible
                         ? "Hide confirm password"
@@ -307,47 +316,74 @@ const AuthPage = () => {
                         : "Show confirm password"
                     }
                   >
-                    {isConfirmPasswordVisible ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {isConfirmPasswordVisible ? (
+                      <Eye size={18} />
+                    ) : (
+                      <EyeOff size={18} />
+                    )}
                   </button>
                 </div>
               </div>
             )}
 
-
             {isLogin && (
-              <div className="flex justify-end">
+              <div className="flex justify-end -mt-2">
                 <button
                   type="button"
                   onClick={() => navigate("/forgot-password")}
-                  className="text-sm text-[#A20202] font-medium hover:underline"
+                  className="text-sm font-medium hover:underline"
+                  style={{ color: ACCENT }}
                 >
                   Forgot Password?
                 </button>
               </div>
             )}
 
-
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#A20202] hover:bg-[#880101] transition-all duration-300 text-white py-4 rounded-xl font-semibold shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full text-white py-4 rounded-full font-semibold shadow-lg transition-transform duration-200 hover:scale-[1.01] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+              style={{ backgroundColor: ACCENT }}
             >
-              {loading ? "Please wait..." : isLogin ? "Login" : "Create Account"}
+              {loading
+                ? "Please wait..."
+                : isLogin
+                  ? "Login"
+                  : "Create Account"}
             </button>
-
           </form>
 
-          <footer className="mt-8 text-center text-gray-600">
+          <div className="flex items-center gap-3 mt-8">
+            <hr className="flex-1 border-gray-200" />
+            <span className="text-gray-400 text-xs font-medium">OR</span>
+            <hr className="flex-1 border-gray-200" />
+          </div>
 
+          <div className="mt-5 flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() =>
+                setError("Google sign-in failed. Please try again.")
+              }
+              theme="outline"
+              size="large"
+              shape="pill"
+              text={isLogin ? "signin_with" : "signup_with"}
+              width="320"
+            />
+          </div>
+
+          <footer className="mt-8 text-gray-600">
             {isLogin ? (
               <>
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <button
                   type="button"
                   onClick={() => handleToggle(false)}
-                  className="text-[#A20202] font-semibold"
+                  className="font-semibold hover:underline"
+                  style={{ color: ACCENT }}
                 >
-                  Signup
+                  Sign Up
                 </button>
               </>
             ) : (
@@ -356,19 +392,49 @@ const AuthPage = () => {
                 <button
                   type="button"
                   onClick={() => handleToggle(true)}
-                  className="text-[#A20202] font-semibold"
+                  className="font-semibold hover:underline"
+                  style={{ color: ACCENT }}
                 >
                   Login
                 </button>
               </>
             )}
-
           </footer>
-
         </article>
 
+        {/* Right: Accent panel */}
+        <aside
+          className="relative order-1 md:order-2 hidden md:flex items-center justify-center overflow-hidden p-12"
+          style={{
+            background: `linear-gradient(135deg, ${ACCENT} 0%, #6e0101 60%, #1a0000 100%)`,
+            clipPath: "polygon(15% 0, 100% 0, 100% 100%, 0% 100%)",
+          }}
+          aria-hidden="true"
+        >
+          <div className="relative z-10 text-right text-white max-w-xs">
+            <h3 className="text-4xl font-extrabold leading-tight mb-4">
+              {isLogin ? (
+                <>
+                  WELCOME
+                  <br />
+                  BACK!
+                </>
+              ) : (
+                <>
+                  HELLO
+                  <br />
+                  THERE!
+                </>
+              )}
+            </h3>
+            <p className="text-white/70 text-sm leading-relaxed">
+              {isLogin
+                ? "Login to continue where you left off."
+                : "Create an account to get started with us."}
+            </p>
+          </div>
+        </aside>
       </section>
-
     </main>
   );
 };
