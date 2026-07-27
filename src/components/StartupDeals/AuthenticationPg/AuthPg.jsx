@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, User, Lock, Mail } from "lucide-react";
-import { login, signup, googleLogin } from "./api/authApi";
+import {
+  login,
+  requestSignupOtp,
+  verifySignupOtp,
+  googleLogin,
+} from "./api/authApi";
 import { useAuth } from "../../../context/AuthContext";
 import { GoogleLogin } from "@react-oauth/google";
 
@@ -25,6 +30,26 @@ const AuthPage = () => {
   const [passwordVisibility, setPasswordVisibility] = useState("auto");
   const [confirmPasswordVisibility, setConfirmPasswordVisibility] =
     useState("auto");
+
+  // Signup is now two steps: fill the form ("form"), then confirm the
+  // emailed code ("otp"). Only after "otp" succeeds does the account exist.
+  const [signupStep, setSignupStep] = useState("form");
+  const [otp, setOtp] = useState("");
+  const [otpMessage, setOtpMessage] = useState(""); // green confirmation banner
+  const [resendCooldown, setResendCooldown] = useState(0); // seconds left until resend is allowed
+  const [resendLoading, setResendLoading] = useState(false);
+  // NEW: local, inline validation message shown right under the OTP field
+  // whenever the user tries to type/paste a non-digit character.
+  const [otpFieldError, setOtpFieldError] = useState("");
+
+  // Ticks the cooldown down every second while it's active
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -77,6 +102,11 @@ const AuthPage = () => {
   const handleToggle = (loginMode) => {
     setIsLogin(loginMode);
     setError("");
+    setSignupStep("form"); // reset so switching modes never gets stuck on the OTP screen
+    setOtpMessage("");
+    setResendCooldown(0);
+    setOtp("");
+    setOtpFieldError(""); // clear any leftover OTP validation message
   };
 
   const handleSubmit = async (e) => {
@@ -95,16 +125,27 @@ const AuthPage = () => {
 
     try {
       setLoading(true);
-      const data = isLogin
-        ? await login({ email: formData.email, password: formData.password })
-        : await signup({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-          });
 
-      setUser(data);
-      navigate("/dashboard", { replace: true });
+      if (isLogin) {
+        const data = await login({
+          email: formData.email,
+          password: formData.password,
+        });
+        setUser(data);
+        navigate("/dashboard", { replace: true });
+      } else {
+        // Signup no longer creates the account directly — it sends an OTP
+        // to the email first. The account is only created once that OTP
+        // is verified in handleOtpSubmit below.
+        const data = await requestSignupOtp({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        });
+        setSignupStep("otp");
+        setOtpMessage(data.message || "OTP sent to your email");
+        setResendCooldown(30); // matches the backend's 30s cooldown
+      }
     } catch (requestError) {
       if (isLogin && requestError.status === 401) {
         setIsLogin(true);
@@ -117,6 +158,73 @@ const AuthPage = () => {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  // NEW: dedicated change handler for the OTP field.
+  // - Strips out any character that isn't a digit (0-9).
+  // - Caps the value at 6 digits.
+  // - If the user typed/pasted something that included non-digit
+  //   characters, we show an inline "numbers only" message.
+  const handleOtpChange = (e) => {
+    const rawValue = e.target.value;
+    const digitsOnly = rawValue.replace(/[^0-9]/g, "").slice(0, 6);
+
+    if (rawValue !== digitsOnly) {
+      setOtpFieldError("Please enter numbers only.");
+    } else {
+      setOtpFieldError("");
+    }
+
+    setOtp(digitsOnly);
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Extra guard: block submission if the OTP isn't a clean 6-digit number
+    // (covers edge cases like autofill injecting non-numeric text).
+    if (!/^\d{6}$/.test(otp)) {
+      setOtpFieldError("Please enter a valid 6-digit numeric code.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const data = await verifySignupOtp({ email: formData.email, otp });
+      setUser(data);
+      navigate("/dashboard", { replace: true });
+    } catch (requestError) {
+      setError(requestError.message || "Invalid OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+
+    setError("");
+    setOtpMessage("");
+    try {
+      setResendLoading(true);
+      const data = await requestSignupOtp({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+      setOtpMessage(data.message || "A new OTP has been sent to your email");
+      setResendCooldown(30);
+    } catch (requestError) {
+      // Backend sends secondsLeft when the cooldown is still active —
+      // use it directly instead of guessing a new countdown
+      if (requestError.status === 429) {
+        setResendCooldown(requestError.data?.secondsLeft ?? 30);
+      }
+      setError(requestError.message || "Could not resend OTP. Please try again.");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -146,12 +254,18 @@ const AuthPage = () => {
         <article className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-1">
           <header className="mb-8">
             <h2 className="text-4xl font-bold" style={{ color: ACCENT }}>
-              {isLogin ? "Login" : "Create Account"}
+              {!isLogin && signupStep === "otp"
+                ? "Verify Your Email"
+                : isLogin
+                  ? "Login"
+                  : "Create Account"}
             </h2>
             <p className="text-gray-500 mt-2">
-              {isLogin
-                ? "Login to continue."
-                : "Join us and create your account."}
+              {!isLogin && signupStep === "otp"
+                ? "Enter the code we just sent you."
+                : isLogin
+                  ? "Login to continue."
+                  : "Join us and create your account."}
             </p>
           </header>
 
@@ -164,214 +278,350 @@ const AuthPage = () => {
             </div>
           )}
 
-          <form className="space-y-7" onSubmit={handleSubmit}>
-            {!isLogin && (
+          {otpMessage && !error && (
+            <div
+              role="status"
+              className="mb-5 rounded-xl border border-green-200 bg-green-50 text-green-700 text-sm p-3"
+            >
+              {otpMessage}
+            </div>
+          )}
+
+          {!isLogin && signupStep === "otp" ? (
+            /* --- OTP verification screen (signup, step 2) --- */
+            <form className="space-y-6" onSubmit={handleOtpSubmit}>
+              <p className="text-gray-600 text-sm">
+                We sent a 6-digit code to <strong>{formData.email}</strong>
+              </p>
+
               <div>
                 <label
-                  htmlFor="name"
+                  htmlFor="otp"
                   className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
                 >
-                  FULL NAME
+                  ENTER OTP
                 </label>
+                {/*
+                  Wrapper div follows the same pattern as the other fields
+                  (email/password): the ACCENT color lives on the wrapper so
+                  the border lights up on focus, while the input text itself
+                  stays a plain, readable black/dark-gray — not red.
+                */}
                 <div
                   className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
                   style={{ color: ACCENT }}
                 >
                   <input
                     type="text"
-                    id="name"
-                    name="name"
-                    placeholder="Enter your full name"
-                    value={formData.name}
-                    onChange={handleChange}
+                    id="otp"
+                    name="otp"
+                    // Placeholder "123456" removed per request — label above
+                    // already tells the user what to do.
+                    value={otp}
+                    onChange={handleOtpChange}
                     required
-                    className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
+                    maxLength={6}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    aria-invalid={otpFieldError ? "true" : "false"}
+                    aria-describedby={
+                      otpFieldError ? "otp-error" : undefined
+                    }
+                    // text-black (not ACCENT) so the digits the user types
+                    // are always plain black, regardless of focus/border color
+                    className="w-full bg-transparent py-2 text-black placeholder-gray-400 focus:outline-none"
                   />
-                  <User size={18} className="absolute right-0 text-gray-400" />
                 </div>
-              </div>
-            )}
 
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
-              >
-                EMAIL ADDRESS
-              </label>
-              <div
-                className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
-                style={{ color: ACCENT }}
-              >
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  placeholder="john@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
-                />
-                <Mail size={18} className="absolute right-0 text-gray-400" />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
-              >
-                PASSWORD
-              </label>
-              <div
-                className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
-                style={{ color: ACCENT }}
-              >
-                <input
-                  type={isPasswordVisible ? "text" : "password"}
-                  id="password"
-                  name="password"
-                  placeholder="********"
-                  value={formData.password}
-                  onChange={handleChange}
-                  onFocus={() => setIsPasswordFocused(true)}
-                  onBlur={() => setIsPasswordFocused(false)}
-                  required
-                  minLength={isLogin ? undefined : 8}
-                  className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={togglePasswordVisibility}
-                  className="absolute right-0 flex items-center justify-center text-gray-400 hover:text-current focus:outline-none"
-                  aria-label={
-                    isPasswordVisible ? "Hide password" : "Show password"
-                  }
-                  title={isPasswordVisible ? "Hide password" : "Show password"}
-                >
-                  {isPasswordVisible ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
-              </div>
-
-              {!isLogin && (
-                <ul className="mt-3 space-y-1.5 text-sm" aria-live="polite">
-                  {passwordRequirements.map((requirement) => (
-                    <li
-                      key={requirement.label}
-                      className={
-                        requirement.met ? "font-medium" : "text-gray-400"
-                      }
-                      style={requirement.met ? { color: ACCENT } : undefined}
-                    >
-                      <span aria-hidden="true" className="mr-2 font-bold">
-                        {requirement.met ? "✓" : "•"}
-                      </span>
-                      {requirement.label}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {!isLogin && (
-              <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
-                >
-                  CONFIRM PASSWORD
-                </label>
-                <div
-                  className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
-                  style={{ color: ACCENT }}
-                >
-                  <input
-                    type={isConfirmPasswordVisible ? "text" : "password"}
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    placeholder="********"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    onFocus={() => setIsConfirmPasswordFocused(true)}
-                    onBlur={() => setIsConfirmPasswordFocused(false)}
-                    required
-                    minLength={8}
-                    className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={toggleConfirmPasswordVisibility}
-                    className="absolute right-0 flex items-center justify-center text-gray-400 hover:text-current focus:outline-none"
-                    aria-label={
-                      isConfirmPasswordVisible
-                        ? "Hide confirm password"
-                        : "Show confirm password"
-                    }
-                    title={
-                      isConfirmPasswordVisible
-                        ? "Hide confirm password"
-                        : "Show confirm password"
-                    }
+                {/* Inline "numbers only" validation message */}
+                {otpFieldError && (
+                  <p
+                    id="otp-error"
+                    role="alert"
+                    className="mt-2 text-sm text-red-600"
                   >
-                    {isConfirmPasswordVisible ? (
-                      <Eye size={18} />
-                    ) : (
-                      <EyeOff size={18} />
-                    )}
-                  </button>
-                </div>
+                    {otpFieldError}
+                  </p>
+                )}
               </div>
-            )}
 
-            {isLogin && (
               <div className="flex justify-end -mt-2">
                 <button
                   type="button"
-                  onClick={() => navigate("/forgot-password")}
-                  className="text-sm font-medium hover:underline"
-                  style={{ color: ACCENT }}
+                  onClick={handleResendOtp}
+                  disabled={resendCooldown > 0 || resendLoading}
+                  className="text-sm font-medium hover:underline disabled:no-underline disabled:text-gray-400 disabled:cursor-not-allowed"
+                  style={resendCooldown > 0 || resendLoading ? undefined : { color: ACCENT }}
                 >
-                  Forgot Password?
+                  {resendLoading
+                    ? "Sending..."
+                    : resendCooldown > 0
+                      ? `Resend OTP in ${resendCooldown}s`
+                      : "Resend OTP"}
                 </button>
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full text-white py-4 rounded-full font-semibold shadow-lg transition-transform duration-200 hover:scale-[1.01] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{ backgroundColor: ACCENT }}
-            >
-              {loading
-                ? "Please wait..."
-                : isLogin
-                  ? "Login"
-                  : "Create Account"}
-            </button>
-          </form>
+              {/*
+                Button width now matches the "Sign in/up with Google" button
+                (which renders at width="320") instead of stretching full-width.
+                max-w-[320px] + mx-auto keeps it centered and still responsive
+                on very small screens.
+              */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full max-w-[320px] mx-auto block text-white py-4 rounded-full font-semibold shadow-lg transition-transform duration-200 hover:scale-[1.01] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                style={{ backgroundColor: ACCENT }}
+              >
+                {loading ? "Verifying..." : "Verify & Create Account"}
+              </button>
 
-          <div className="flex items-center gap-3 mt-8">
-            <hr className="flex-1 border-gray-200" />
-            <span className="text-gray-400 text-xs font-medium">OR</span>
-            <hr className="flex-1 border-gray-200" />
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSignupStep("form");
+                  setError("");
+                  setOtpMessage("");
+                  setResendCooldown(0);
+                  setOtp("");
+                  setOtpFieldError("");
+                }}
+                className="w-full text-sm font-medium hover:underline"
+                style={{ color: ACCENT }}
+              >
+                &larr; Back to signup form
+              </button>
+            </form>
+          ) : (
+            /* --- Normal login / signup form --- */
+            <>
+              <form className="space-y-7" onSubmit={handleSubmit}>
+                {!isLogin && (
+                  <div>
+                    <label
+                      htmlFor="name"
+                      className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
+                    >
+                      FULL NAME
+                    </label>
+                    <div
+                      className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
+                      style={{ color: ACCENT }}
+                    >
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        placeholder="Enter your full name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                        className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
+                      />
+                      <User
+                        size={18}
+                        className="absolute right-0 text-gray-400"
+                      />
+                    </div>
+                  </div>
+                )}
 
-          <div className="mt-5 flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() =>
-                setError("Google sign-in failed. Please try again.")
-              }
-              theme="outline"
-              size="large"
-              shape="pill"
-              text={isLogin ? "signin_with" : "signup_with"}
-              width="320"
-            />
-          </div>
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
+                  >
+                    EMAIL ADDRESS
+                  </label>
+                  <div
+                    className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
+                    style={{ color: ACCENT }}
+                  >
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      placeholder="john@example.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
+                    />
+                    <Mail size={18} className="absolute right-0 text-gray-400" />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
+                  >
+                    PASSWORD
+                  </label>
+                  <div
+                    className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
+                    style={{ color: ACCENT }}
+                  >
+                    <input
+                      type={isPasswordVisible ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      placeholder="********"
+                      value={formData.password}
+                      onChange={handleChange}
+                      onFocus={() => setIsPasswordFocused(true)}
+                      onBlur={() => setIsPasswordFocused(false)}
+                      required
+                      minLength={isLogin ? undefined : 8}
+                      className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={togglePasswordVisibility}
+                      className="absolute right-0 flex items-center justify-center text-gray-400 hover:text-current focus:outline-none"
+                      aria-label={
+                        isPasswordVisible ? "Hide password" : "Show password"
+                      }
+                      title={
+                        isPasswordVisible ? "Hide password" : "Show password"
+                      }
+                    >
+                      {isPasswordVisible ? (
+                        <Eye size={18} />
+                      ) : (
+                        <EyeOff size={18} />
+                      )}
+                    </button>
+                  </div>
+
+                  {!isLogin && (
+                    <ul className="mt-3 space-y-1.5 text-sm" aria-live="polite">
+                      {passwordRequirements.map((requirement) => (
+                        <li
+                          key={requirement.label}
+                          className={
+                            requirement.met ? "font-medium" : "text-gray-400"
+                          }
+                          style={
+                            requirement.met ? { color: ACCENT } : undefined
+                          }
+                        >
+                          <span aria-hidden="true" className="mr-2 font-bold">
+                            {requirement.met ? "✓" : "•"}
+                          </span>
+                          {requirement.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {!isLogin && (
+                  <div>
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-xs font-semibold tracking-wide text-gray-500 mb-2"
+                    >
+                      CONFIRM PASSWORD
+                    </label>
+                    <div
+                      className="relative flex items-center border-b-2 border-gray-200 focus-within:border-current transition-colors"
+                      style={{ color: ACCENT }}
+                    >
+                      <input
+                        type={isConfirmPasswordVisible ? "text" : "password"}
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        placeholder="********"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        onFocus={() => setIsConfirmPasswordFocused(true)}
+                        onBlur={() => setIsConfirmPasswordFocused(false)}
+                        required
+                        minLength={8}
+                        className="w-full bg-transparent py-2 pr-8 text-gray-800 placeholder-gray-400 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={toggleConfirmPasswordVisibility}
+                        className="absolute right-0 flex items-center justify-center text-gray-400 hover:text-current focus:outline-none"
+                        aria-label={
+                          isConfirmPasswordVisible
+                            ? "Hide confirm password"
+                            : "Show confirm password"
+                        }
+                        title={
+                          isConfirmPasswordVisible
+                            ? "Hide confirm password"
+                            : "Show confirm password"
+                        }
+                      >
+                        {isConfirmPasswordVisible ? (
+                          <Eye size={18} />
+                        ) : (
+                          <EyeOff size={18} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {isLogin && (
+                  <div className="flex justify-end -mt-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate("/forgot-password")}
+                      className="text-sm font-medium hover:underline"
+                      style={{ color: ACCENT }}
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
+
+                {/*
+                  Button width now matches the Google button (width="320")
+                  instead of stretching the full width of the form column.
+                */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full max-w-[320px] mx-auto block text-white py-4 rounded-full font-semibold shadow-lg transition-transform duration-200 hover:scale-[1.01] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  style={{ backgroundColor: ACCENT }}
+                >
+                  {loading
+                    ? "Please wait..."
+                    : isLogin
+                      ? "Login"
+                      : "Create Account"}
+                </button>
+              </form>
+
+              <div className="flex items-center gap-3 mt-8">
+                <hr className="flex-1 border-gray-200" />
+                <span className="text-gray-400 text-xs font-medium">OR</span>
+                <hr className="flex-1 border-gray-200" />
+              </div>
+
+              <div className="mt-5 flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() =>
+                    setError("Google sign-in failed. Please try again.")
+                  }
+                  theme="outline"
+                  size="large"
+                  shape="pill"
+                  text={isLogin ? "signin_with" : "signup_with"}
+                  width="320"
+                />
+              </div>
+            </>
+          )}
 
           <footer className="mt-8 text-gray-600">
             {isLogin ? (

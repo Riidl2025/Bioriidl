@@ -17,16 +17,23 @@ async function request(path, options = {}) {
   if (!response.ok) {
     const error = new Error(data.message ?? "Unable to complete the request.");
     error.status = response.status;
+    error.data = data; // exposes extra fields like redirectTo or secondsLeft
     throw error;
   }
 
   return data;
 }
 
-export const signup = (userData) =>
+export const requestSignupOtp = (userData) =>
   request("/signup", {
     method: "POST",
-    body: JSON.stringify(userData),
+    body: JSON.stringify({ step: "request", ...userData }),
+  });
+
+export const verifySignupOtp = ({ email, otp }) =>
+  request("/signup", {
+    method: "POST",
+    body: JSON.stringify({ step: "verify", email, otp }),
   });
 
 export const login = (credentials) =>
@@ -34,7 +41,7 @@ export const login = (credentials) =>
     method: "POST",
     body: JSON.stringify(credentials),
   });
-  
+
 //Frontend: sending the note to your backend
 export const googleLogin = (credential) =>
   request("/google", {
