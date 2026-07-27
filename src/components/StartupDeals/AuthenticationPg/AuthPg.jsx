@@ -203,16 +203,27 @@ const AuthPage = () => {
 
     try {
       setLoading(true);
-      const data = isLogin
-        ? await login({ email: formData.email, password: formData.password })
-        : await signup({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-          });
 
-      setUser(data);
-      navigate("/dashboard", { replace: true });
+      if (isLogin) {
+        const data = await login({
+          email: formData.email,
+          password: formData.password,
+        });
+        setUser(data);
+        navigate("/dashboard", { replace: true });
+      } else {
+        // Signup no longer creates the account directly — it sends an OTP
+        // to the email first. The account is only created once that OTP
+        // is verified in handleOtpSubmit below.
+        const data = await requestSignupOtp({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        });
+        setSignupStep("otp");
+        setOtpMessage(data.message || "OTP sent to your email");
+        setResendCooldown(30); // matches the backend's 30s cooldown
+      }
     } catch (requestError) {
       if (isLogin && requestError.status === 401) {
         setIsLogin(true);
@@ -225,6 +236,73 @@ const AuthPage = () => {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  // NEW: dedicated change handler for the OTP field.
+  // - Strips out any character that isn't a digit (0-9).
+  // - Caps the value at 6 digits.
+  // - If the user typed/pasted something that included non-digit
+  //   characters, we show an inline "numbers only" message.
+  const handleOtpChange = (e) => {
+    const rawValue = e.target.value;
+    const digitsOnly = rawValue.replace(/[^0-9]/g, "").slice(0, 6);
+
+    if (rawValue !== digitsOnly) {
+      setOtpFieldError("Please enter numbers only.");
+    } else {
+      setOtpFieldError("");
+    }
+
+    setOtp(digitsOnly);
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Extra guard: block submission if the OTP isn't a clean 6-digit number
+    // (covers edge cases like autofill injecting non-numeric text).
+    if (!/^\d{6}$/.test(otp)) {
+      setOtpFieldError("Please enter a valid 6-digit numeric code.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const data = await verifySignupOtp({ email: formData.email, otp });
+      setUser(data);
+      navigate("/dashboard", { replace: true });
+    } catch (requestError) {
+      setError(requestError.message || "Invalid OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+
+    setError("");
+    setOtpMessage("");
+    try {
+      setResendLoading(true);
+      const data = await requestSignupOtp({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+      setOtpMessage(data.message || "A new OTP has been sent to your email");
+      setResendCooldown(30);
+    } catch (requestError) {
+      // Backend sends secondsLeft when the cooldown is still active —
+      // use it directly instead of guessing a new countdown
+      if (requestError.status === 429) {
+        setResendCooldown(requestError.data?.secondsLeft ?? 30);
+      }
+      setError(requestError.message || "Could not resend OTP. Please try again.");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -255,12 +333,18 @@ const AuthPage = () => {
         <article className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-1">
           <header className="mb-8">
             <h2 className="text-4xl font-bold" style={{ color: ACCENT }}>
-              {isLogin ? "Login" : "Create Account"}
+              {!isLogin && signupStep === "otp"
+                ? "Verify Your Email"
+                : isLogin
+                  ? "Login"
+                  : "Create Account"}
             </h2>
             <p className="text-gray-500 mt-2">
-              {isLogin
-                ? "Login to continue."
-                : "Join us and create your account."}
+              {!isLogin && signupStep === "otp"
+                ? "Enter the code we just sent you."
+                : isLogin
+                  ? "Login to continue."
+                  : "Join us and create your account."}
             </p>
           </header>
 
@@ -425,11 +509,11 @@ const AuthPage = () => {
             </button>
           </form>
 
-          <div className="flex items-center gap-3 mt-8">
-            <hr className="flex-1 border-gray-200" />
-            <span className="text-gray-400 text-xs font-medium">OR</span>
-            <hr className="flex-1 border-gray-200" />
-          </div>
+              <div className="flex items-center gap-3 mt-8">
+                <hr className="flex-1 border-gray-200" />
+                <span className="text-gray-400 text-xs font-medium">OR</span>
+                <hr className="flex-1 border-gray-200" />
+              </div>
 
           <div className="mt-5 flex justify-center">
             <GoogleLogin
