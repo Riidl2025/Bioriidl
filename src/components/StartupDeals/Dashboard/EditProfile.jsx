@@ -242,8 +242,9 @@ const EditProfile = ({ user, setView, onProfileUpdated }) => {
       {/* Top Navigation Back Button */}
       <button
         onClick={() => {
+          // Always navigate to the full dashboard route; also update local view state if present
           if (setView) setView('dashboard');
-          else navigate('/dashboard');
+          if (navigate) navigate('/dashboard');
         }}
         className="inline-flex items-center gap-2 mb-6 text-sm font-semibold text-slate-600 hover:text-[#A20202] transition-colors bg-white px-4 py-2 rounded-xl shadow-xs border border-slate-200/85"
       >

@@ -15,7 +15,6 @@ import GrantsAgent from './../pages/Grantsagent/index';
 // Import StartupDeals only once
 import StartupDealsPage from "../pages/StartupDeals/index.jsx"; 
 import UserDashboard from "../components/StartupDeals/Dashboard/UserDashboard.jsx";
-import ForgotPassword from "../components/StartupDeals/Dashboard/ForgotPassword.jsx";
 import AuthPage from "../components/StartupDeals/AuthenticationPg/AuthPg.jsx";
 
 const AppRouter = () => {
@@ -36,7 +35,6 @@ const AppRouter = () => {
         <Route path="/grantsagent" element={<GrantsAgent/>} />
         <Route path="/startupdeals" element={<StartupDealsPage />} />
         <Route path="/dashboard" element={<UserDashboard />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/startupdeals/auth" element={<AuthPage />} />
       </Route>
     </Routes>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const DashboardBanner = () => {
   return (
@@ -14,15 +15,15 @@ const DashboardBanner = () => {
           </span>
           <h3 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Unlock Exclusive Perks</h3>
         </div>
-        <button 
-          onClick={() => window.location.href = '/startupdeals'} 
-          className="group inline-flex cursor-pointer items-center justify-center gap-3 whitespace-nowrap rounded-2xl bg-[#A20202] px-8 py-4 text-sm font-bold text-white shadow-xl shadow-red-900/20 transition-all duration-300 hover:bg-[#850101] hover:shadow-red-900/30 hover:-translate-y-0.5 active:translate-y-0"
+        <Link
+          to="/startupdeals?view=deals"
+          className="group inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-2xl bg-[#A20202] px-8 py-4 text-sm font-bold text-white shadow-xl shadow-red-900/20 transition-all duration-300 hover:bg-[#850101] hover:shadow-red-900/30 hover:-translate-y-0.5 active:translate-y-0"
         >
           <span>Browse All Offers</span>
           <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
-        </button>
+        </Link>
       </div>
     </div>
   );

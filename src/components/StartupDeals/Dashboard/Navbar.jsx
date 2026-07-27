@@ -16,14 +16,19 @@ const Navbar = ({ setView, user, handleLogout, getInitials }) => {
 
   const handleDashboardClick = () => {
     setShowDropdown(false);
+    // Navigate to the dashboard route and also update local view state if provided.
     if (navigate) navigate('/dashboard');
     if (setView) setView('dashboard');
   };
 
   const handleProfileClick = () => {
     setShowDropdown(false);
-    if (navigate) navigate('/dashboard');
-    if (setView) setView('profile');
+    if (navigate) {
+      navigate('/dashboard?view=profile');
+    }
+    if (setView) {
+      setView('profile');
+    }
   };
 
   // Safe fallback if getInitials function is not passed as a prop

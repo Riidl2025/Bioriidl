@@ -8,7 +8,7 @@ const UserProfile = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/startupdeals", { replace: true });
+    navigate("/startupdeals/auth", { replace: true });
   };
 
   return (

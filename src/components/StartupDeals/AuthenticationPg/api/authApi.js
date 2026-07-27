@@ -35,7 +35,7 @@ export const login = (credentials) =>
     body: JSON.stringify(credentials),
   });
   
-//Frontend: sending the note to your backend
+// Frontend: sending the note to your backend
 export const googleLogin = (credential) =>
   request("/google", {
     method: "POST",
@@ -45,3 +45,21 @@ export const googleLogin = (credential) =>
 export const getProfile = () => request("/dashboard");
 
 export const logout = () => request("/logout", { method: "POST" });
+
+export const forgotPasswordRequest = (email) =>
+  request("/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email, step: "request" }),
+  });
+
+export const verifyOtp = (email, otp) =>
+  request("/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email, otp, step: "verify" }),
+  });
+
+export const resetPassword = (email, newPassword) =>
+  request("/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email, newPassword, step: "reset" }),
+  });
