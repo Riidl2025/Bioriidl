@@ -7,6 +7,14 @@ const EditProfile = ({ user, setView, onProfileUpdated }) => {
   const [fullName, setFullName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
 
+  // Keep local inputs synced if the user prop updates
+  useEffect(() => {
+    if (user) {
+      if (user.name) setFullName(user.name);
+      if (user.email) setEmail(user.email);
+    }
+  }, [user]);
+
   // Password change section fields
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -110,9 +118,22 @@ const EditProfile = ({ user, setView, onProfileUpdated }) => {
 
       setMessage('Account settings updated successfully in the database!');
 
+      // Immediately update local input fields with the saved response data
+      if (data.user) {
+        setFullName(data.user.name);
+        setEmail(data.user.email);
+      } else if (data.name && data.email) {
+        setFullName(data.name);
+        setEmail(data.email);
+      }
+
       if (onProfileUpdated) {
         onProfileUpdated(data);
       }
+
+      // Clear password fields on success
+      setCurrentPassword('');
+      setNewPassword('');
 
       setTimeout(() => {
         if (setView) setView('dashboard');

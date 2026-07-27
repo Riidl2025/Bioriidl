@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 const ForgotPassword = () => {
   const navigate = useNavigate();
 
-  // --- State Management ---
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -13,7 +12,6 @@ const ForgotPassword = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // --- API Interaction ---
   const handleAction = async (actionStep) => {
     setIsLoading(true);
     setErrorMessage('');
@@ -58,7 +56,6 @@ const ForgotPassword = () => {
     }
   };
 
-  // --- UI Render ---
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4 font-sans">
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
@@ -80,7 +77,6 @@ const ForgotPassword = () => {
           </p>
         )}
 
-        {/* --- Step 1: Request OTP --- */}
         {step === 'request' && (
           <div className="space-y-4">
             <div>
@@ -104,7 +100,6 @@ const ForgotPassword = () => {
           </div>
         )}
 
-        {/* --- Step 2: Verify OTP --- */}
         {step === 'verify' && (
           <div className="space-y-4">
             <div>
@@ -129,7 +124,6 @@ const ForgotPassword = () => {
           </div>
         )}
 
-        {/* --- Step 3: Reset Password --- */}
         {step === 'reset' && (
           <div className="space-y-4">
             <div>

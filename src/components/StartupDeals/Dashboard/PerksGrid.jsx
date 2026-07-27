@@ -32,7 +32,7 @@ const PerksGrid = ({ loading, claims, onDeleteClick }) => {
         </svg>
       </div>
       <h4 className="text-lg font-bold text-slate-900">No active perks found</h4>
-      <p className="mt-1 max-w-sm text-sm text-slate-500">Your claimed perks will appear here instantly once you redeem an offer from the catalog.</p>
+      <p className="mt-1 max-w-sm text-sm text-slate-500">Your claimed perks will appear here instantly once you redeem an offer.</p>
     </div>
   );
 };
