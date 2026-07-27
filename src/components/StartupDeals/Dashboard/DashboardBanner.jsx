@@ -13,7 +13,6 @@ const DashboardBanner = () => {
             Perks Hub
           </span>
           <h3 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Unlock Exclusive Perks</h3>
-          <p className="max-w-xl text-sm font-medium text-slate-600">Supercharge your workflow with curated industry software discounts and premium startup credits.</p>
         </div>
         <button 
           onClick={() => window.location.href = '/startupdeals'} 
