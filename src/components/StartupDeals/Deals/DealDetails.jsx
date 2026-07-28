@@ -153,16 +153,9 @@ export default function DealDetails({ deal }) {
 
           <button
             type="button"
-<<<<<<< HEAD
             disabled={isClaiming}
             onClick={handleClaimClick}
-            className="inline-flex items-center justify-center rounded-[10px] bg-[#A20202] px-6 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-[#8B0202] hover:shadow-[0_6px_16px_rgba(162,2,2,0.22)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A20202]/40 focus-visible:ring-offset-2 disabled:opacity-50"
-=======
-            onClick={() =>
-              alert("Claim functionality will be integrated later.")
-            }
-            className="inline-flex w-full items-center justify-center rounded-[10px] bg-[#A20202] px-6 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-[#8B0202] hover:shadow-[0_6px_16px_rgba(162,2,2,0.22)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A20202]/40 focus-visible:ring-offset-2 sm:w-auto"
->>>>>>> 4cf326b (StartUpDeals ui changed)
+            className="inline-flex w-full items-center justify-center rounded-[10px] bg-[#A20202] px-6 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-[#8B0202] hover:shadow-[0_6px_16px_rgba(162,2,2,0.22)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A20202]/40 focus-visible:ring-offset-2 disabled:opacity-50 sm:w-auto"
           >
             {isClaiming ? 'Processing...' : deal.buttonText || 'Claim Now'}
           </button>

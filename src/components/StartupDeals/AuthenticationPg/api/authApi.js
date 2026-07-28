@@ -30,6 +30,8 @@ export const requestSignupOtp = (userData) =>
     body: JSON.stringify({ step: "request", ...userData }),
   });
 
+export const signup = requestSignupOtp;
+
 export const verifySignupOtp = ({ email, otp }) =>
   request("/signup", {
     method: "POST",
@@ -41,7 +43,25 @@ export const login = (credentials) =>
     method: "POST",
     body: JSON.stringify(credentials),
   });
-  
+
+export const forgotPasswordRequest = (email) =>
+  request("/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ step: "request", email }),
+  });
+
+export const verifyOtp = (email, otp) =>
+  request("/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ step: "verify", email, otp }),
+  });
+
+export const resetPassword = (email, newPassword) =>
+  request("/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ step: "reset", email, newPassword }),
+  });
+
 //Frontend: sending the note to your backend
 export const googleLogin = (credential) =>
   request("/google", {
